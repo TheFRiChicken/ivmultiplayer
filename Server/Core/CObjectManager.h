@@ -22,8 +22,9 @@ struct _Object
 	unsigned int	uiVehiclePlayerId;
 	CVector3		vecAttachPosition;
 	CVector3		vecAttachRotation;
+	unsigned char	ucDimension;
+	unsigned int	iBone;
 };
-
 struct _Fire
 {
 	CVector3	vecPosition;
@@ -58,11 +59,15 @@ public:
 	bool			SetRotation(EntityId objectId, const CVector3& vecRotation);
 	bool			GetRotation(EntityId objectId, CVector3& vecRotation);
 	void			AttachToVehicle(EntityId objectId, EntityId vehicleId,const CVector3& vecPos, const CVector3& vecRot);
-	void			AttachToPlayer(EntityId objectId, EntityId playerId, const CVector3& vecPos, const CVector3& vecRot);
+	void			AttachToPlayer(EntityId objectId, EntityId playerId, const CVector3& vecPos, const CVector3& vecRot, int iBone = -1);
+	void			MoveObject(EntityId objectId, const CVector3& vecMoveTarget,const CVector3& vecMoveRot, float fSpeed);
+	void			RotateObject(EntityId objectId, const CVector3& vecMoveRot, float fSpeed);
 	void			Detach(EntityId objectId);
 
 	EntityId		CreateFire(const CVector3& vecPosition, float fdensity);
 	void			DeleteFire(EntityId fireId);
 	void			HandleClientJoinFire(EntityId playerId);
 	void			CreateExplosion(const CVector3& vecPosition, float fdensity);
+	void			SetDimension(EntityId objectId, unsigned char ucDimension);
+	unsigned char	GetDimension(EntityId objectId) { if(DoesExist(objectId)) return m_Objects[objectId].ucDimension; else return 0; }
 };

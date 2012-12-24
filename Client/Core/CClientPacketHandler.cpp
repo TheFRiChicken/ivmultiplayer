@@ -65,6 +65,10 @@ void CClientPacketHandler::Disconnected(CBitStream * pBitStream, CPlayerSocket *
 {
 	g_pChatWindow->AddInfoMessage("Server closed the connection ...");
 	g_pMainMenu->ResetNetworkStats();
+
+	if(g_pNetworkManager->IsConnected())
+		g_pNetworkManager->Disconnect();
+
 	//g_pMainMenu->ShowMessageBox("The server closed the connection!", "Disconnected", true, true, false);
 	g_pMainMenu->SetDisconnectButtonVisible(false);
 }

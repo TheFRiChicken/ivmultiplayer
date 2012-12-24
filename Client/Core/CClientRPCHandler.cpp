@@ -295,7 +295,7 @@ void CClientRPCHandler::NewVehicle(CBitStream * pBitStream, CPlayerSocket * pSen
 		pBitStream->Read(ucVariation);
 
 	// Create the new vehicle
-	CNetworkVehicle * pVehicle = new CNetworkVehicle(g_pModelManager->VehicleIdToModelHash(iModelId));
+	CNetworkVehicle * pVehicle = new CNetworkVehicle(g_pModelManager->VehicleIdToModelHash(iModelId), iModelId);
 	
 	// Set the vehicle spawn position
 	pVehicle->SetSpawnPosition(vecPosition);
@@ -495,6 +495,7 @@ void CClientRPCHandler::AttachObject(CBitStream * pBitStream, CPlayerSocket * pS
 	unsigned int	uiVehiclePlayerId;
 	CVector3		vecAttachPosition;
 	CVector3		vecAttachRotation;
+	int				iBone = -1;
 
 	while(pBitStream->ReadCompressed(objectId))
 	{
@@ -517,6 +518,10 @@ void CClientRPCHandler::AttachObject(CBitStream * pBitStream, CPlayerSocket * pS
 			// Read the attached rot
 			pBitStream->Read(vecAttachRotation);
 
+			// Read the bone id
+			if(pBitStream->ReadBit())
+				pBitStream->Read(iBone);
+
 			// If object is attached
 			if(bAttached)
 			{
@@ -536,8 +541,12 @@ void CClientRPCHandler::AttachObject(CBitStream * pBitStream, CPlayerSocket * pS
 					{
 						CNetworkPlayer * pPlayer = g_pPlayerManager->GetAt(uiVehiclePlayerId);
 					
-						if(pPlayer)
-							Scripting::AttachObjectToPed(pObject->GetHandle(),pPlayer->GetScriptingHandle(),(Scripting::ePedBone)0,vecAttachPosition.fX,vecAttachPosition.fY,vecAttachPosition.fZ,vecAttachRotation.fX,vecAttachRotation.fY,vecAttachRotation.fZ,0);
+						if(pPlayer) {
+							if(iBone != -1)
+								Scripting::AttachObjectToPed(pObject->GetHandle(),pPlayer->GetScriptingHandle(),(Scripting::ePedBone)iBone,vecAttachPosition.fX,vecAttachPosition.fY,vecAttachPosition.fZ,vecAttachRotation.fX,vecAttachRotation.fY,vecAttachRotation.fZ,0);
+							else
+								Scripting::AttachObjectToPed(pObject->GetHandle(),pPlayer->GetScriptingHandle(),(Scripting::ePedBone)0,vecAttachPosition.fX,vecAttachPosition.fY,vecAttachPosition.fZ,vecAttachRotation.fX,vecAttachRotation.fY,vecAttachRotation.fZ,0);
+						}
 					}
 				}
 			}
@@ -3444,10 +3453,10 @@ void CClientRPCHandler::ScriptingTogglePlayerLabelForPlayer(CBitStream * pBitStr
 			return;
 
 	EntityId playerId;
-	bool bToggle;
+	bool bToggle = false;
 
 	pBitStream->Read(playerId);
-	bToggle = pBitStream->ReadBit();
+	pBitStream->Read(bToggle);
 
 	if(g_pPlayerManager->DoesExist(playerId)) {
 		CNetworkPlayer * pPlayer = g_pPlayerManager->GetAt(playerId);
@@ -3476,6 +3485,112 @@ void CClientRPCHandler::ScriptingFixVehicle(CBitStream * pBitStream, CPlayerSock
 
 	if(g_pVehicleManager->Exists(vehicleId))
 		Scripting::FixCar(g_pVehicleManager->Get(vehicleId)->GetScriptingHandle());
+}
+
+
+void CClientRPCHandler::ScriptingMoveObject(CBitStream * pBitStream, CPlayerSocket * pSenderSocket)
+{
+	if(!pBitStream)
+		return;
+
+	EntityId objectId;
+	pBitStream->ReadCompressed(objectId);
+
+	CVector3 vecMoveTarget;
+	pBitStream->Read(vecMoveTarget);
+
+	float fMoveSpeed;
+	pBitStream->Read(fMoveSpeed);
+
+	CVector3 vecMoveRot;
+	vecMoveRot = CVector3();
+
+	if(pBitStream->ReadBit())
+		pBitStream->Read(vecMoveRot);
+
+	CObject *pObject = g_pObjectManager->Get(objectId);
+	if(pObject) {
+		pObject->SetMoveTarget(vecMoveTarget);
+
+		CVector3 vecStart;
+		pObject->GetPosition(vecStart);
+		pObject->SetStartPosition(vecStart);
+
+		pObject->SetMoveSpeed(fMoveSpeed);
+		pObject->SetIsMoving(true);
+
+
+		if(vecMoveRot.Length() != 0) {
+			pObject->SetMoveTargetRot(vecMoveRot);
+
+			CVector3 vecStartRot;
+			pObject->GetRotation(vecStartRot);
+			pObject->SetStartRotation(vecStartRot);
+
+			pObject->SetIsRotating(true);
+		}
+	}
+}
+
+void CClientRPCHandler::ScriptingRotateObject(CBitStream * pBitStream, CPlayerSocket * pSenderSocket)
+{
+	if(!pBitStream)
+		return;
+
+	EntityId objectId;
+	pBitStream->ReadCompressed(objectId);
+
+	CVector3 vecMoveRot;
+	pBitStream->Read(vecMoveRot);
+
+	float fMoveSpeed;
+	pBitStream->Read(fMoveSpeed);
+
+	CObject *pObject = g_pObjectManager->Get(objectId);
+	if(pObject) {
+		pObject->SetMoveTargetRot(vecMoveRot);
+
+		CVector3 vecStartRot;
+		pObject->GetRotation(vecStartRot);
+		pObject->SetStartRotation(vecStartRot);
+
+		pObject->SetIsRotating(true);
+	}
+}
+
+void CClientRPCHandler::ScriptingSetObjectDimension(CBitStream * pBitStream, CPlayerSocket * pSenderSocket)
+{
+	if(!pBitStream)
+		return;
+
+	EntityId objectId;
+	pBitStream->ReadCompressed(objectId);
+
+	unsigned char ucDimension;
+	pBitStream->Read(ucDimension);
+
+	CObject *pObject = g_pObjectManager->Get(objectId);
+	if(pObject) {
+		pObject->SetDimension(ucDimension);
+	}
+}
+
+
+void CClientRPCHandler::ScriptingSetCheckpointDimension(CBitStream * pBitStream, CPlayerSocket * pSenderSocket)
+{
+	if(!pBitStream)
+		return;
+
+	EntityId checkpointId;
+	pBitStream->ReadCompressed(checkpointId);
+
+	unsigned char ucDimension;
+	pBitStream->Read(ucDimension);
+
+	CCheckpoint *pCheckpoint = g_pCheckpointManager->Get(checkpointId);
+	if(pCheckpoint) {
+		pCheckpoint->SetDimension(ucDimension);
+	}
 }
 
 void CClientRPCHandler::Register()
@@ -3641,6 +3756,9 @@ void CClientRPCHandler::Register()
 	AddFunction(RPC_ScriptingFixVehicle, ScriptingFixVehicle);
 	AddFunction(RPC_ScriptingAttachObject, AttachObject);
 	AddFunction(RPC_ScriptingDetachObject, DetachObject);
+	AddFunction(RPC_ScriptingMoveObject, ScriptingMoveObject);
+	AddFunction(RPC_ScriptingRotateObject, ScriptingRotateObject);
+	AddFunction(RPC_ScriptingSetObjectDimension, ScriptingSetObjectDimension);
 }
 
 void CClientRPCHandler::Unregister()

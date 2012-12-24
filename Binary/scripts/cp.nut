@@ -48,6 +48,7 @@ function onScriptInit()
 	blipcolortest = createBlip(78,1000.0,1000.0,0.0,true);
 	setBlipColor(blipcolortest,0xE59338FF,-1);
 	setBlipName(blipcolortest, "idk");
+
 	return 1;
 }
 addEvent("scriptInit", onScriptInit);
@@ -115,7 +116,10 @@ addEvent("playerSpawn", onSpawn);
 function onPlayerCommand(playerid, command)
 {
 	local cmd = split(command, " ");
-	
+	if(cmd[0] == "/moveobject")
+	{
+		moveObject(cmd[1].tointeger(), 1727.337769, 705.455688, 25.831680, 5000.0);
+	}
 	if(cmd[0] == "/getwantedlevel")
 	{
 		sendPlayerMessage(playerid,"WANTEDLEVEL:"+getPlayerWantedLevel(playerid));
@@ -160,6 +164,18 @@ function onPlayerCommand(playerid, command)
 		local pos = getPlayerCoordinates(playerid);
 		local object = createObject(cmd[1].tointeger(), pos[0]+2.0, pos[1]+2.0, pos[2], 0.0, 0.0, 0.0);
 		sendPlayerMessage(playerid, "Object: "+object, 0xFFFFFFAA);
+	}
+	if(cmd[0] == "/moveobject")
+	{
+		moveObject(cmd[1].tointeger(), 1727.337769, 705.455688, 25.831680, 5000.0);
+	}
+	if(cmd[0] == "/moveobjectrot")
+	{
+		moveObject(cmd[1].tointeger(), 1727.337769, 705.455688, 25.831680, 5000.0, 0, 0, 0);
+	}
+	if(cmd[0] == "/rotateobject")
+	{
+		rotateObject(cmd[1].tointeger(), 0, 0, 0, 5000.0);
 	}
 	if(cmd[0] == "/toggleblip")
 	{

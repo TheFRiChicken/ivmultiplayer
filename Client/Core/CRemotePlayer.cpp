@@ -119,7 +119,7 @@ void CRemotePlayer::StoreOnFootSync(OnFootSyncData * syncPacket)
 	SetTargetPosition(syncPacket->vecPos, TICK_RATE*2);
 
 	// Set our heading
-	SetCurrentHeading(syncPacket->fHeading);
+	SetCurrentSyncHeading(syncPacket->fHeading);
 
 	// Set our move speed
 	SetMoveSpeed(syncPacket->vecMoveSpeed);
@@ -218,10 +218,10 @@ void CRemotePlayer::StoreInVehicleSync(EntityId vehicleId, InVehicleSyncData * s
 		pVehicle->SetTargetRotation(syncPacket->vecRotation, TICK_RATE/**2*/);
 
 		// Set their quaternion
-		pVehicle->SetQuaternion(syncPacket->fQuaternion);
+		//pVehicle->SetQuaternion(syncPacket->fQuaternion);
 		
 		// Check if we have no bike(otherwise -> shake shake, shake shake shake IT! :P)
-		if(pVehicle->GetModelInfo()->GetIndex() < 105 || pVehicle->GetModelInfo()->GetIndex() > 111)
+		if(pVehicle->GetVehicleModelType() < 105 || pVehicle->GetVehicleModelType() > 111)
 		{
 			// Set their vehicles turn speed
 			pVehicle->SetTurnSpeed(syncPacket->vecTurnSpeed);
@@ -259,7 +259,7 @@ void CRemotePlayer::StoreInVehicleSync(EntityId vehicleId, InVehicleSyncData * s
 		// Set their vehicles siren state
 		if(pVehicle->GetSirenState() != syncPacket->bSirenState)
 			pVehicle->SetSirenState(syncPacket->bSirenState);
-		/*
+		
 		// Set their windows
 		for(int i = 0; i <= 3; i++)
 			pVehicle->SetWindowState(i, syncPacket->bWindow[i]);
@@ -269,7 +269,7 @@ void CRemotePlayer::StoreInVehicleSync(EntityId vehicleId, InVehicleSyncData * s
 		{
 			if(syncPacket->bTyre[i])
 				Scripting::BurstCarTyre(pVehicle->GetScriptingHandle(),(Scripting::eVehicleTyre)i);
-		}*/
+		}
 
 		// Set their vehicles dirt level
 		if(pVehicle->GetDirtLevel() != syncPacket->fDirtLevel)

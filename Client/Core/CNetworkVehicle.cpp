@@ -26,7 +26,7 @@ extern CNetworkManager * g_pNetworkManager;
 #define THIS_CHECK if(!this) { CLogFile::Printf("this error"); return; }
 #define THIS_CHECK_R(x) if(!this) { CLogFile::Printf("this error"); return x; }
 
-CNetworkVehicle::CNetworkVehicle(DWORD dwModelHash)
+CNetworkVehicle::CNetworkVehicle(DWORD dwModelHash, int iModelId)
 	: CStreamableEntity(STREAM_ENTITY_VEHICLE, 200.0f),
 	m_pVehicle ( NULL),
 	m_vehicleId(INVALID_ENTITY_ID),
@@ -46,10 +46,12 @@ CNetworkVehicle::CNetworkVehicle(DWORD dwModelHash)
 	m_uiInterior(-1),
 	m_bActorVehicle(false),
 	m_bFirstStreamIn(false),
-	m_bActive(false)
+	m_bActive(false),
+	m_iVehicleType(-1)
 {
 
-	memset(m_pPassengers, 0, sizeof(m_pPassengers));
+	for(int i = 0; i < 8; i++)
+		m_pPassengers[i] = NULL;
 	
 	SetModel(dwModelHash);
 	memset(&m_vecPosition, 0, sizeof(CVector3));
@@ -60,6 +62,8 @@ CNetworkVehicle::CNetworkVehicle(DWORD dwModelHash)
 	
 	memset(m_bIndicatorState, 0, sizeof(m_bIndicatorState));
 	SetIndicatorState(false, false, false, false);
+
+	m_iVehicleType = iModelId;
 
 	memset(m_iComponents, 0, sizeof(m_iComponents));
 	m_interp.pos.ulFinishTime = 0;
@@ -130,8 +134,11 @@ bool CNetworkVehicle::IsOccupied()
 
 void CNetworkVehicle::SetPassenger(BYTE bytePassengerId, CNetworkPlayer * pPassenger)
 {
+	//if(pPassenger)
+		//CLogFile::Printf("Set Passenger %d(%s)",bytePassengerId, pPassenger->GetName().C_String());
+
 	THIS_CHECK
-	if(bytePassengerId < MAX_VEHICLE_PASSENGERS)
+	if(bytePassengerId > MAX_VEHICLE_PASSENGERS)
 		return;
 
 	m_pPassengers[bytePassengerId] = pPassenger;
@@ -232,7 +239,7 @@ bool CNetworkVehicle::Create(bool bStreamIn)
 
 			// Disable visible/"normal" damage
 			SetDamageable(false);
-			m_pVehicle->SetCanBeVisiblyDamaged(true);
+			m_pVehicle->SetCanBeVisiblyDamaged(false);
 
 			// Add the vehicle to the world
 			// Not needed as native does it for us
@@ -258,7 +265,7 @@ bool CNetworkVehicle::Create(bool bStreamIn)
 			FixCarFloating();
 
 			// Fix missing components at nrg, helicopter etc.
-			if(GetModelInfo()->GetIndex() > 104 && GetModelInfo()->GetIndex() < 116) {
+			if(m_iVehicleType > 104 && m_iVehicleType < 116) {
 				for(int i = 0; i < 8; i++) 
 					SetComponentState(i, 1);
 			}
@@ -275,7 +282,7 @@ bool CNetworkVehicle::Create(bool bStreamIn)
 
 		// Disable visible/"normal" damage
 		SetDamageable(false);
-		m_pVehicle->SetCanBeVisiblyDamaged(true);
+		m_pVehicle->SetCanBeVisiblyDamaged(false);
 
 		// Add the vehicle to the world
 		// Not needed as native does it for us
@@ -303,7 +310,7 @@ bool CNetworkVehicle::Create(bool bStreamIn)
 		FixCarFloating();
 
 		// Fix missing components at nrg, helicopter etc.
-		if(GetModelInfo()->GetIndex() > 104 && GetModelInfo()->GetIndex() < 116) {
+		if(m_iVehicleType > 104 && m_iVehicleType < 116) {
 			for(int i = 0; i < 8; i++)
 				SetComponentState(i, 1);
 		}
@@ -433,7 +440,7 @@ void CNetworkVehicle::StreamIn()
 			SoundHorn((m_ulHornDurationEnd - SharedUtility::GetTime()));
 
 		// Fix missing components at nrg, helicopter etc.
-		if(GetModelInfo()->GetIndex() > 104 && GetModelInfo()->GetIndex() < 116) {
+		if(m_iVehicleType > 104 && m_iVehicleType < 116) {
 			for(int i = 0; i < 8; i++)
 				SetComponentState(i, 1);
 		}
@@ -443,6 +450,7 @@ void CNetworkVehicle::StreamIn()
 			for(int i = 0; i <= 8; ++ i)
 				SetComponentState(i, m_iComponents[i]);
 		}
+
 		// Restore the variation
 		SetVariation(m_ucVariation);
 
@@ -456,6 +464,10 @@ void CNetworkVehicle::StreamIn()
 
 		// Reset interpolation
 		ResetInterpolation();
+
+		// Reset indicators
+		memset(m_bIndicatorState, 0, sizeof(m_bIndicatorState));
+		SetIndicatorState(false, false, false, false);
 
 		// Add the driver if we have one
 		if(m_pDriver)
@@ -1323,7 +1335,7 @@ void CNetworkVehicle::SetComponentState(unsigned char ucSlot, int iComponent)
 
 		// Are we spawned?
 		if(IsSpawned()) {
-			m_pVehicle->SetComponentState((ucSlot + 1), iComponent);
+			m_pVehicle->SetComponentState( (ucSlot + 1), iComponent ? true : false );
 		}
 	}
 }
@@ -1578,12 +1590,13 @@ bool CNetworkVehicle::GetVehicleGPSState()
 void CNetworkVehicle::FixCarFloating()
 {
 	THIS_CHECK
+
 	// Check if we have a vehicle pointer
 	if( m_pVehicle == NULL )
 		return;
 
 	// Check if we have a helicopter(IDS (112, 113, 114, 115))
-	if( m_pModelInfo->GetIndex() > 111 && m_pModelInfo->GetIndex() < 116)
+	if( m_iVehicleType > 111 && m_iVehicleType < 116)
 		return;
 
 	// Unfreeze the car so we can put it on the ground

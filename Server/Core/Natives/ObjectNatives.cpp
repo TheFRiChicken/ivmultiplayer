@@ -32,8 +32,13 @@ void CObjectNatives::Register(CScriptingManager * pScriptingManager)
 	pScriptingManager->RegisterFunction("createFire", CreateFire, 4, "ffff");
 	pScriptingManager->RegisterFunction("deleteFire", DeleteFire, 1, "i");
 	pScriptingManager->RegisterFunction("attachObjectToPlayer", AttachPed, 8, "iiffffff");
+	pScriptingManager->RegisterFunction("attachObjectToPlayerBone", AttachPedBone, 9, "iiffffffi");
 	pScriptingManager->RegisterFunction("attachObjectToVehicle", AttachVehicle, 8, "iiffffff");
 	pScriptingManager->RegisterFunction("detachObject", DetachObject, 1, "i");
+	pScriptingManager->RegisterFunction("moveObject", MoveObject, -1, NULL);
+	pScriptingManager->RegisterFunction("rotateObject", RotateObject, 5, "iffff");
+	pScriptingManager->RegisterFunction("setObjectDimension", SetDimension, 2, "ii");
+	pScriptingManager->RegisterFunction("getObjectDimension", GetDimension, 1, "i");
 }
 
 // createObject(modelhash, x, y, z, rx, ry, rz)
@@ -230,7 +235,34 @@ SQInteger CObjectNatives::AttachPed(SQVM *pVM)
 	return 1;
 }
 
-SQInteger CObjectNatives::AttachVehicle(SQVM *pVM)
+SQInteger CObjectNatives::AttachPedBone(SQVM *pVM)
+{
+	EntityId	objectId;
+	EntityId	playerId;
+	CVector3	vecPos;
+	CVector3	vecRot;
+	int			iBone;
+
+	sq_getentity(pVM,-9,&objectId);
+	sq_getentity(pVM,-8,&playerId);
+	sq_getfloat(pVM,-7,&vecPos.fX);
+	sq_getfloat(pVM,-6,&vecPos.fY);
+	sq_getfloat(pVM,-5,&vecPos.fZ);
+	sq_getfloat(pVM,-4,&vecRot.fX);
+	sq_getfloat(pVM,-3,&vecRot.fY);
+	sq_getfloat(pVM,-2,&vecRot.fZ);
+	sq_getinteger(pVM,-1,&iBone);
+
+	if(g_pObjectManager->DoesExist(objectId))
+	{
+		g_pObjectManager->AttachToPlayer(objectId,playerId,vecPos,vecRot, iBone);
+		sq_pushbool(pVM,true);
+	}
+	sq_pushbool(pVM,false);
+	return 1;
+}
+
+SQInteger CObjectNatives::AttachVehicle(SQVM * pVM)
 {
 	EntityId	objectId;
 	EntityId	vehicleId;
@@ -265,5 +297,85 @@ SQInteger CObjectNatives::DetachObject(SQVM *pVM)
 		sq_pushbool(pVM,true);
 	}
 	sq_pushbool(pVM,false);
+	return 1;
+}
+
+SQInteger CObjectNatives::MoveObject(SQVM * pVM)
+{
+	EntityId objectId;
+	CVector3 vecMoveTarget;
+	CVector3 vecMoveRot;
+	float fSpeed;
+	if(sq_gettop(pVM) >= 5) {
+		sq_getentity(pVM, 2, &objectId);
+		sq_getfloat(pVM, 3, &vecMoveTarget.fX);
+		sq_getfloat(pVM, 4, &vecMoveTarget.fY);
+		sq_getfloat(pVM, 5, &vecMoveTarget.fZ);
+		sq_getfloat(pVM, 6, &fSpeed);
+
+		if(g_pObjectManager->DoesExist(objectId)) {
+			g_pObjectManager->GetRotation(objectId, vecMoveRot);
+		}
+
+		if(sq_gettop(pVM) > 5)
+		{
+			sq_getfloat(pVM, 7, &vecMoveRot.fX);
+			sq_getfloat(pVM, 8, &vecMoveRot.fY);
+			sq_getfloat(pVM, 9, &vecMoveRot.fZ);
+		}
+
+		if(g_pObjectManager->DoesExist(objectId))
+		{
+			g_pObjectManager->MoveObject(objectId, vecMoveTarget, vecMoveRot, fSpeed);
+			sq_pushbool(pVM, true);
+			return 1;
+		}
+	}
+	sq_pushbool(pVM, false);
+	return 1;
+}
+
+SQInteger CObjectNatives::RotateObject(SQVM * pVM)
+{
+	EntityId objectId;
+	CVector3 vecMoveRot;
+	float fSpeed;
+	sq_getentity(pVM, -5, &objectId);
+	sq_getfloat(pVM, -4, &vecMoveRot.fX);
+	sq_getfloat(pVM, -3, &vecMoveRot.fY);
+	sq_getfloat(pVM, -2, &vecMoveRot.fZ);
+	sq_getfloat(pVM, -1, &fSpeed);
+	if(g_pObjectManager->DoesExist(objectId))
+	{
+		g_pObjectManager->RotateObject(objectId, vecMoveRot, fSpeed);
+		sq_pushbool(pVM, true);
+		return 1;
+	}
+	sq_pushbool(pVM, false);
+	return 1;
+}
+
+
+SQInteger CObjectNatives::SetDimension(SQVM * pVM)
+{
+	SQInteger iDimension;
+	EntityId objectId;
+
+	sq_getinteger(pVM, -1, &iDimension);
+	sq_getentity(pVM, -2, &objectId);
+	
+	g_pObjectManager->SetDimension(objectId, iDimension);
+
+	sq_pushbool(pVM, true);
+	return 1;
+}
+
+SQInteger CObjectNatives::GetDimension(SQVM * pVM)
+{ 
+	EntityId objectId;
+
+	sq_getentity(pVM, -1, &objectId);
+
+	sq_pushinteger(pVM, (SQInteger)g_pObjectManager->GetDimension(objectId));
 	return 1;
 }

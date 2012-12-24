@@ -182,6 +182,11 @@ private:
 	static void ResetVehicleEnterExit(CBitStream * pBitStream, CPlayerSocket * pSenderSocket);
 	static void ScriptingTogglePlayerLabelForPlayer(CBitStream * pBitStream, CPlayerSocket * pSenderSocket);
 	static void ScriptingFixVehicle(CBitStream * pBitStream, CPlayerSocket * pSenderSocket);
+	static void	ScriptingMoveObject(CBitStream * pBitStream, CPlayerSocket * pSenderSocket);
+	static void	ScriptingRotateObject(CBitStream * pBitStream, CPlayerSocket * pSenderSocket);
+	static void ScriptingSetObjectDimension(CBitStream * pBitStream, CPlayerSocket * pSenderSocket);
+	static void ScriptingSetCheckpointDimension(CBitStream * pBitStream, CPlayerSocket * pSenderSocket);
+
 public:
 	void        Register();
 	void        Unregister();

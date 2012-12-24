@@ -27,7 +27,12 @@ private:
 	static SQInteger CreateExplosion(SQVM * pVM);
 	static SQInteger AttachVehicle(SQVM * pVM);
 	static SQInteger AttachPed(SQVM * pVM);
+	static SQInteger AttachPedBone(SQVM * pVM);
 	static SQInteger DetachObject(SQVM * pVM);
+	static SQInteger MoveObject(SQVM * pVM);
+	static SQInteger RotateObject(SQVM * pVM);
+	static SQInteger SetDimension(SQVM * pVM);
+	static SQInteger GetDimension(SQVM * pVM);
 
 public:
 	static void      Register(CScriptingManager * pScriptingManager);
